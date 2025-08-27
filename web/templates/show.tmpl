@@ -1,0 +1,9 @@
+{{ define "content" }}
+  <a href="/">← Back</a>
+  <h2>{{ .Item.Title }} <span class="pill">{{ .Item.Status }}</span></h2>
+  <p>{{ .Item.Desc }}</p>
+  <p class="muted">Contact: {{ .Item.Contact }}</p>
+  <p class="muted">Posted {{ .Item.CreatedAt.Format "Jan 2, 3:04 PM" }}</p>
+{{ end }}
+
+{{ template "layout" . }}
