@@ -1,9 +1,17 @@
-{{ define "content" }}
-  <a href="/">← Back</a>
-  <h2>{{ .Item.Title }} <span class="pill">{{ .Item.Status }}</span></h2>
-  <p>{{ .Item.Desc }}</p>
-  <p class="muted">Contact: {{ .Item.Contact }}</p>
-  <p class="muted">Posted {{ .Item.CreatedAt.Format "Jan 2, 3:04 PM" }}</p>
-{{ end }}
+{{define "title"}}Item Details{{end}}
 
-{{ template "layout" . }}
+{{define "content"}}
+<div class="card">
+    <div class="row">
+        <h2>{{.Item.Title}}</h2>
+        <span class="pill {{.Item.Status}}">{{.Item.Status}}</span>
+    </div>
+    <p class="muted">Reported on {{.Item.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
+    <p><strong>Description:</strong><br>{{.Item.Desc}}</p>
+    <p><strong>Contact Info:</strong><br>{{.Item.Contact}}</p>
+</div>
+
+<p><a href="/">← Back to All Items</a></p>
+{{end}}
+
+{{template "layout" .}}

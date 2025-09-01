@@ -1,15 +1,38 @@
-{{ define "content" }}
-  <h2>Post a lost or found item</h2>
-  <form method="POST" action="/items">
-    <label>Title <input name="title" required></label>
-    <label>Description <textarea name="desc" rows="4"></textarea></label>
-    <label>Contact <input name="contact" required placeholder="email or phone"></label>
-    <div>
-      <label><input type="radio" name="status" value="lost" checked> Lost</label>
-      <label><input type="radio" name="status" value="found"> Found</label>
-    </div>
-    <button type="submit">Post item</button>
-  </form>
-{{ end }}
+{{define "title"}}Post New Item{{end}}
 
-{{ template "layout" . }}
+{{define "content"}}
+<h2>Report Lost or Found Item</h2>
+
+<div class="card">
+    <form method="POST" action="/items">
+        <div style="margin-bottom: 1em;">
+            <label for="title"><strong>Title</strong></label><br>
+            <input type="text" id="title" name="title" required style="width: 100%;">
+        </div>
+
+        <div style="margin-bottom: 1em;">
+            <label for="desc"><strong>Description</strong></label><br>
+            <textarea id="desc" name="desc" rows="4" style="width: 100%;"></textarea>
+        </div>
+
+        <div style="margin-bottom: 1em;">
+            <label for="contact"><strong>Contact Info</strong></label><br>
+            <input type="text" id="contact" name="contact" required style="width: 100%;">
+        </div>
+
+        <div style="margin-bottom: 1em;">
+            <label for="status"><strong>Status</strong></label><br>
+            <select id="status" name="status" required>
+                <option value="lost">Lost</option>
+                <option value="found">Found</option>
+            </select>
+        </div>
+
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<p><a href="/">← Back to All Items</a></p>
+{{end}}
+
+{{template "layout" .}}
