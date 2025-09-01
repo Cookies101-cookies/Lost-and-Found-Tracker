@@ -1,0 +1,15 @@
+{{ define "content" }}
+  <h2>Post a lost or found item</h2>
+  <form method="POST" action="/items">
+    <label>Title <input name="title" required></label>
+    <label>Description <textarea name="desc" rows="4"></textarea></label>
+    <label>Contact <input name="contact" required placeholder="email or phone"></label>
+    <div>
+      <label><input type="radio" name="status" value="lost" checked> Lost</label>
+      <label><input type="radio" name="status" value="found"> Found</label>
+    </div>
+    <button type="submit">Post item</button>
+  </form>
+{{ end }}
+
+{{ template "layout" . }}

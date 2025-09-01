@@ -1,0 +1,19 @@
+{{ define "content" }}
+  {{ if not .Items }}
+    <p>No items yet. Be the first to post something you lost or found.</p>
+  {{ else }}
+    {{ range .Items }}
+      <div class="card">
+        <div class="row">
+          <a href="/items/{{ .ID }}"><strong>{{ .Title }}</strong></a>
+          <span class="pill">{{ .Status }}</span>
+          <span class="muted">{{ .CreatedAt.Format "Jan 2, 3:04 PM" }}</span>
+        </div>
+        <p>{{ .Desc }}</p>
+        <p class="muted">Contact: {{ .Contact }}</p>
+      </div>
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ template "layout" . }}
