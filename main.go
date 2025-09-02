@@ -26,7 +26,7 @@ func main() {
 	r := gin.Default()
 	r.LoadHTMLGlob("web/templates/*.tmpl") // for HTML we create later
 	r.Static("/static", "./web/static")    // for CSS we create later
-	//r.Static("/uploads", "./uploads")       placeholder for future functionality
+	r.Static("/uploads", "./uploads")       placeholder for future functionality
 
 	// Routes
 	r.GET("/", listItems)
