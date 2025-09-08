@@ -35,4 +35,63 @@
 <p><a href="/">← Back to All Items</a></p>
 {{end}}
 
-{{template "layout" .}}
+{{define "new"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Post New Item</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1><a href="/">Lost & Found</a></h1>
+        <nav>
+            <a href="/">All Items</a> | 
+            <a href="/items/new">Post Item</a>
+        </nav>
+        <hr>
+    </header>
+
+    <main>
+        <h2>Report Lost or Found Item</h2>
+
+        <div class="card">
+            <form method="POST" action="/items">
+                <div style="margin-bottom: 1em;">
+                    <label for="title"><strong>Title</strong></label><br>
+                    <input type="text" id="title" name="title" required style="width: 100%;">
+                </div>
+
+                <div style="margin-bottom: 1em;">
+                    <label for="desc"><strong>Description</strong></label><br>
+                    <textarea id="desc" name="desc" rows="4" style="width: 100%;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 1em;">
+                    <label for="contact"><strong>Contact Info</strong></label><br>
+                    <input type="text" id="contact" name="contact" required style="width: 100%;">
+                </div>
+
+                <div style="margin-bottom: 1em;">
+                    <label for="status"><strong>Status</strong></label><br>
+                    <select id="status" name="status" required>
+                        <option value="lost">Lost</option>
+                        <option value="found">Found</option>
+                    </select>
+                </div>
+
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+
+        <p><a href="/">← Back to All Items</a></p>
+    </main>
+
+    <footer>
+        <hr>
+        <p>&copy; 2025 Lost & Found</p>
+    </footer>
+</body>
+</html>
+{{end}}

@@ -4,7 +4,7 @@
 <div class="card">
     <div class="row">
         <h2>{{.Item.Title}}</h2>
-        <span class="pill {{.Item.Status}}">{{.Item.Status}}</span>
+        <span class="pill {{if eq .Item.Status "lost"}}pill-lost{{else}}pill-found{{end}}">{{.Item.Status}}</span>
     </div>
     <p class="muted">Reported on {{.Item.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
     <p><strong>Description:</strong><br>{{.Item.Desc}}</p>
@@ -14,4 +14,42 @@
 <p><a href="/">← Back to All Items</a></p>
 {{end}}
 
-{{template "layout" .}}
+{{define "show"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Item Details</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1><a href="/">Lost & Found</a></h1>
+        <nav>
+            <a href="/">All Items</a> | 
+            <a href="/items/new">Post Item</a>
+        </nav>
+        <hr>
+    </header>
+
+    <main>
+        <div class="card">
+            <div class="row">
+                <h2>{{.Item.Title}}</h2>
+                <span class="pill {{if eq .Item.Status "lost"}}pill-lost{{else}}pill-found{{end}}">{{.Item.Status}}</span>
+            </div>
+            <p class="muted">Reported on {{.Item.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
+            <p><strong>Description:</strong><br>{{.Item.Desc}}</p>
+            <p><strong>Contact Info:</strong><br>{{.Item.Contact}}</p>
+        </div>
+
+        <p><a href="/">← Back to All Items</a></p>
+    </main>
+
+    <footer>
+        <hr>
+        <p>&copy; 2025 Lost & Found</p>
+    </footer>
+</body>
+</html>
+{{end}}
