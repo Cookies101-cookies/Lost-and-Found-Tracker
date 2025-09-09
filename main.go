@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -8,27 +9,36 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
+	"github.com/Cookies101-cookies/Lost-and-Found-Tracker/internal/db"
 )
 
 type Item struct {
-	ID        int
-	Title     string
-	Desc      string
-	Contact   string
-	Status    string // "lost" or "found"
-	CreatedAt time.Time
+	ID        int `gorm:"primaryKey;autoIncrement"`
+	Title     string `gorm:"index"`
+	Desc      string `gorm:"type:text"`
+	Contact   string 
+	Status    string `gorm:"index"` // "lost" or "found"
+	CreatedAt time.Time `gorm:"index"`
 }
 
-// In-memory storage
-var items = []Item{}
-var nextID = 1
-var htmlTemplate *gin.Engine
+var gdb *gorm.DB
 
 func main() {
 	r := gin.Default()
 	r.LoadHTMLGlob("web/templates/*.tmpl") // load all templates
 	r.Static("/static", "./web/static")    // serve CSS (style.css)
-	htmlTemplate = r
+	
+	// Open DB and migrate
+	database, err := db.Open("loundfound.db")
+	if err != nil {
+		log.Fatal("open db:", err)
+	}
+	if err := database.AutoMigrate(&Item{}); err != nil {
+		log.Fatal("migrate:", err)
+	}
+	gdb = database
 
 	// Routes
 	r.GET("/", listItems)
@@ -46,32 +56,27 @@ func listItems(c *gin.Context) {
 	q := strings.ToLower(strings.TrimSpace(c.Query("q")))
 	status := strings.ToLower(strings.TrimSpace(c.Query("status")))
 
-	filtered := make([]Item, 0, len(items))
-	for _, it := range items {
-		// status filter
-		if status == "lost" || status == "found" {
-			if strings.ToLower(it.Status) != status {
-				continue
-			}
-		}
-		// text filter
-		if q != "" {
-			title := strings.ToLower(it.Title)
-			desc := strings.ToLower(it.Desc)
-			if !strings.Contains(title, q) && !strings.Contains(desc, q) {
-				continue
-			}
-		}
-		filtered = append(filtered, it)
+	var items []Item
+	tx := gdb.Model(&Item{})
+
+	if status == "lost" || status == "found" {
+		tx = tx.Where("LOWER(status) = ?", status)
+	}
+	if q != "" {
+		like := "%" + strings.ToLower(q) + "%"
+		tx = tx.Where("LOWER(title) LIKE ? OR LOWER(`desc`) LIKE ?", like, like)
 	}
 
-	log.Printf("listItems q=%q status=%q total=%d", q, status, len(filtered))
+	if err := tx.Order("created_at DESC").Find(&items).Error; err != nil {
+		c.String(http.StatusInternalServerError, "query error: %v", err)
+		return
+	}
+
 	c.HTML(http.StatusOK, "index", gin.H{
-		"Title":  "All Items",
-		"Items":  filtered,
-		"Q":      c.Query("q"), // preserve original casing for display
+		"Items": items,
+		"Q": q,
 		"Status": status,
-		"Total":  len(filtered),
+		"Total": len(items),
 	})
 }
 
@@ -96,15 +101,17 @@ func createItem(c *gin.Context) {
 	}
 
 	item := Item{
-		ID:        nextID,
 		Title:     title,
 		Desc:      desc,
 		Contact:   contact,
 		Status:    status,
 		CreatedAt: time.Now(),
 	}
-	nextID++
-	items = append(items, item)
+	
+	if err := gdb.Create(&item).Error; err != nil {
+		c.String(http.StatusInternalServerError, "create error: %v", err)
+		return
+	}
 
 	c.Redirect(http.StatusSeeOther, "/")
 }
@@ -116,14 +123,15 @@ func showItem(c *gin.Context) {
 		c.String(http.StatusBadRequest, "invalid id")
 		return
 	}
-	for _, it := range items {
-		if it.ID == id {
-			c.HTML(http.StatusOK, "show", gin.H{
-				"Title": "Item Details",
-				"Item":  it,
-			})
+
+	var it Item
+	if err := gdb.First(&it, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.String(http.StatusNotFound, "item not found")
 			return
 		}
+		c.String(http.StatusInternalServerError, "lookup error: %v", err)
+		return
 	}
-	c.String(http.StatusNotFound, "item not found")
+	c.HTML(http.StatusOK, "show", gin.H{"Item": it})
 }
