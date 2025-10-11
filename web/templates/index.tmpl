@@ -33,6 +33,11 @@
       <h3><a href="/items/{{.ID}}">{{.Title}}</a></h3>
       <span class="pill {{if eq .Status "lost"}}pill-lost{{else}}pill-found{{end}}">{{.Status}}</span>
     </div>
+
+    {{if .Image}}
+      <img src="/static/uploads/{{.Image}}" alt="{{.Title}}" style="max-width:200px; display:block; margin-bottom:8px">
+    {{end}}
+
     <p class="muted">{{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
     <p><strong>Description:</strong> {{.Desc}}</p>
     <p><strong>Contact:</strong> {{.Contact}}</p>
@@ -92,6 +97,11 @@
               <h3><a href="/items/{{.ID}}">{{.Title}}</a></h3>
               <span class="pill {{if eq .Status "lost"}}pill-lost{{else}}pill-found{{end}}">{{.Status}}</span>
             </div>
+
+            {{if .Image}}
+              <img src="/static/uploads/{{.Image}}" alt="{{.Title}}" style="max-width:200px; display:block; margin-bottom:8px">
+            {{end}}
+
             <p class="muted">{{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
             <p><strong>Description:</strong> {{.Desc}}</p>
             <p><strong>Contact:</strong> {{.Contact}}</p>

@@ -15,11 +15,12 @@ import (
 )
 
 type Item struct {
-	ID        int `gorm:"primaryKey;autoIncrement"`
+	ID        int    `gorm:"primaryKey;autoIncrement"`
 	Title     string `gorm:"index"`
 	Desc      string `gorm:"type:text"`
-	Contact   string 
-	Status    string `gorm:"index"` // "lost" or "found"
+	Contact   string
+	Status    string    `gorm:"index"` // "lost" or "found"
+	Image     string    // URL or path to image
 	CreatedAt time.Time `gorm:"index"`
 }
 
@@ -28,8 +29,8 @@ var gdb *gorm.DB
 func main() {
 	r := gin.Default()
 	r.LoadHTMLGlob("web/templates/*.tmpl") // load all templates
-	r.Static("/static", "./web/static")    // serve CSS (style.css)
-	
+	r.Static("/static", "./web/static")    // serve CSS and uploads
+
 	// Open DB and migrate
 	database, err := db.Open("loundfound.db")
 	if err != nil {
@@ -44,6 +45,11 @@ func main() {
 	r.GET("/", listItems)
 	r.GET("/items/new", newItemForm)
 	r.POST("/items", createItem)
+
+	// Edit routes **must come before /items/:id**
+	r.GET("/items/:id/edit", editItemForm)
+	r.POST("/items/:id/edit", updateItem)
+
 	r.GET("/items/:id", showItem)
 
 	log.Println("listening on http://localhost:8080")
@@ -52,6 +58,7 @@ func main() {
 	}
 }
 
+// List all items
 func listItems(c *gin.Context) {
 	q := strings.ToLower(strings.TrimSpace(c.Query("q")))
 	status := strings.ToLower(strings.TrimSpace(c.Query("status")))
@@ -73,19 +80,19 @@ func listItems(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "index", gin.H{
-		"Items": items,
-		"Q": q,
+		"Items":  items,
+		"Q":      q,
 		"Status": status,
-		"Total": len(items),
+		"Total":  len(items),
 	})
 }
 
+// Show form for creating new item
 func newItemForm(c *gin.Context) {
-	c.HTML(http.StatusOK, "new", gin.H{
-		"Title": "Post New Item",
-	})
+	c.HTML(http.StatusOK, "new", gin.H{"Title": "Post New Item"})
 }
 
+// Create new item
 func createItem(c *gin.Context) {
 	title := c.PostForm("title")
 	desc := c.PostForm("desc")
@@ -100,14 +107,25 @@ func createItem(c *gin.Context) {
 		return
 	}
 
+	var filename string
+	file, err := c.FormFile("image")
+	if err == nil {
+		filename = strconv.FormatInt(time.Now().UnixNano(), 10) + "_" + file.Filename
+		if err := c.SaveUploadedFile(file, "./web/static/uploads/"+filename); err != nil {
+			c.String(http.StatusInternalServerError, "failed to save image: %v", err)
+			return
+		}
+	}
+
 	item := Item{
 		Title:     title,
 		Desc:      desc,
 		Contact:   contact,
 		Status:    status,
+		Image:     filename,
 		CreatedAt: time.Now(),
 	}
-	
+
 	if err := gdb.Create(&item).Error; err != nil {
 		c.String(http.StatusInternalServerError, "create error: %v", err)
 		return
@@ -116,6 +134,7 @@ func createItem(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, "/")
 }
 
+// Show single item
 func showItem(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -134,4 +153,76 @@ func showItem(c *gin.Context) {
 		return
 	}
 	c.HTML(http.StatusOK, "show", gin.H{"Item": it})
+}
+
+// Show form for editing an item
+func editItemForm(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.Atoi(idStr)
+
+	var it Item
+	if err := gdb.First(&it, id).Error; err != nil {
+		c.String(http.StatusNotFound, "item not found")
+		return
+	}
+
+	c.HTML(http.StatusOK, "edit", gin.H{"Item": it})
+	log.Println("Edit page requested for ID:", id)
+}
+
+// Update item
+func updateItem(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid item ID")
+		return
+	}
+
+	var it Item
+	if err := gdb.First(&it, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.String(http.StatusNotFound, "item not found")
+			return
+		}
+		c.String(http.StatusInternalServerError, "lookup error: %v", err)
+		return
+	}
+
+	// Log incoming form data for debugging
+	log.Println("Updating item:", id)
+	log.Println("Form data:", c.PostForm("title"), c.PostForm("desc"), c.PostForm("contact"), c.PostForm("status"))
+
+	// Update fields
+	it.Title = c.PostForm("title")
+	it.Desc = c.PostForm("desc")
+	it.Contact = c.PostForm("contact")
+	status := c.PostForm("status")
+	if status == "lost" || status == "found" {
+		it.Status = status
+	}
+
+	// Handle optional image upload
+	file, err := c.FormFile("image")
+	if err == nil {
+		filename := strconv.FormatInt(time.Now().UnixNano(), 10) + "_" + file.Filename
+		savePath := "./web/static/uploads/" + filename
+		if saveErr := c.SaveUploadedFile(file, savePath); saveErr != nil {
+			c.String(http.StatusInternalServerError, "failed to save image: %v", saveErr)
+			return
+		}
+		it.Image = filename
+		log.Println("Uploaded new image:", filename)
+	} else {
+		log.Println("No new image uploaded")
+	}
+
+	// Save updates
+	if err := gdb.Save(&it).Error; err != nil {
+		c.String(http.StatusInternalServerError, "failed to update item: %v", err)
+		return
+	}
+
+	log.Println("Item updated successfully:", id)
+	c.Redirect(http.StatusSeeOther, "/items/"+idStr)
 }

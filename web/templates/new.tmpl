@@ -4,7 +4,7 @@
 <h2>Report Lost or Found Item</h2>
 
 <div class="card">
-    <form method="POST" action="/items">
+    <form method="POST" action="/items" enctype="multipart/form-data">
         <div style="margin-bottom: 1em;">
             <label for="title"><strong>Title</strong></label><br>
             <input type="text" id="title" name="title" required style="width: 100%;">
@@ -26,6 +26,11 @@
                 <option value="lost">Lost</option>
                 <option value="found">Found</option>
             </select>
+        </div>
+
+        <div style="margin-bottom : 1em;">
+            <label for="image"><strong>Image (optional)></strong></label><br>
+            <input type="file" id="image" name="image" accept="image/*">
         </div>
 
         <button type="submit">Submit</button>
@@ -57,7 +62,7 @@
         <h2>Report Lost or Found Item</h2>
 
         <div class="card">
-            <form method="POST" action="/items">
+            <form method="POST" action="/items" enctype="multipart/form-data">
                 <div style="margin-bottom: 1em;">
                     <label for="title"><strong>Title</strong></label><br>
                     <input type="text" id="title" name="title" required style="width: 100%;">
@@ -79,6 +84,11 @@
                         <option value="lost">Lost</option>
                         <option value="found">Found</option>
                     </select>
+                </div>
+
+                <div style="margin-bottom : 1em;">
+                    <label for="image"><strong>Image (optional)</strong></label><br>
+                    <input type="file" id="image" name="image" accept="image/*">
                 </div>
 
                 <button type="submit">Submit</button>
