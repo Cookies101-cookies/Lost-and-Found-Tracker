@@ -15,13 +15,14 @@ import (
 )
 
 type Item struct {
-	ID        int    `gorm:"primaryKey;autoIncrement"`
-	Title     string `gorm:"index"`
-	Desc      string `gorm:"type:text"`
-	Contact   string
-	Status    string    `gorm:"index"` // "lost" or "found"
-	Image     string    // URL or path to image
-	CreatedAt time.Time `gorm:"index"`
+	ID        int        `gorm:"primaryKey;autoIncrement"` // Unique ID
+	Title     string     `gorm:"index"`                    // Title of the item
+	Desc      string     `gorm:"type:text"`                // Description of the item
+	Contact   string     // Contact info of the person who posted
+	Status    string     `gorm:"index"` // "lost" or "found"
+	Image     string     // URL or path to image
+	CreatedAt time.Time  `gorm:"index"` // When the post was created
+	FoundAt   *time.Time `gorm:"index"` // When the item was marked as found
 }
 
 var gdb *gorm.DB
@@ -53,7 +54,7 @@ func main() {
 	r.GET("/items/:id", showItem)
 
 	// Route to delete all items from database only
-	r.GET("/clear-db-only", func(c *gin.Context) {
+	r.GET("/clear-db", func(c *gin.Context) {
 		// Delete all items from the database, but keep uploaded images
 		if err := gdb.Where("1 = 1").Delete(&Item{}).Error; err != nil {
 			c.String(http.StatusInternalServerError, "Failed to clear items: %v", err)
@@ -286,6 +287,15 @@ func markAsFound(c *gin.Context) {
 	it.Status = "found"
 	if err := gdb.Save(&it).Error; err != nil {
 		c.String(http.StatusInternalServerError, "failed to update item: %v", err)
+		return
+	}
+
+	now := time.Now()
+	it.Status = "found"
+	it.FoundAt = &now
+
+	if err := gdb.Save(&it).Error; err != nil {
+		c.String(http.StatusInternalServerError, "failed to mark item as found: %v", err)
 		return
 	}
 

@@ -45,6 +45,9 @@
                 </form>
             {{end}}
 
+            {{if eq .Item.Status "found"}}
+                <p class="muted">Marked as found on {{.Item.FoundAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
+            {{end}}
         </div>
 
         <p><a href="/">← Back to All Items</a></p>
