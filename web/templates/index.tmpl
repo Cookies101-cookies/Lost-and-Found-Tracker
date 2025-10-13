@@ -7,63 +7,70 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <header>
-        <h1><a href="/">Lost & Found</a></h1>
-        <nav>
-            <a href="/">All Items</a> | 
-            <a href="/items/new">Post Item</a>
-        </nav>
-        <hr>
-    </header>
+<header>
+    <h1><a href="/">Lost & Found</a></h1>
+    <nav>
+        <a href="/">All Items</a> | 
+        <a href="/items/new">Post Item</a>
+    </nav>
+    <hr>
+</header>
 
-    <main>
-        <h2>All Items</h2>
+<main>
+<h2>All Items</h2>
 
-        <form method="GET" action="/" style="margin: 0 0 12px 0; display: flex; gap: 8px; align-items: center;">
-            <input type="text" name="q" placeholder="Search items" value="{{.Q}}" style="flex:1; padding:8px;">
-            <button type="submit">Search</button>
-            <input type="hidden" name="status" value="{{.Status}}">
-        </form>
+<form method="GET" action="/" style="margin: 0 0 12px 0; display: flex; gap: 8px; align-items: center;">
+    <input type="text" name="q" placeholder="Search items" value="{{.Q}}" style="flex:1; padding:8px;">
+    <button type="submit">Search</button>
+    <input type="hidden" name="status" value="{{.Status}}">
+</form>
 
-        <div style="margin-bottom:12px;">
-            <a class="button" href="/?q={{.Q | urlquery}}">All</a>
-            <a class="button" href="/?status=lost&q={{.Q | urlquery}}">Lost</a>
-            <a class="button" href="/?status=found&q={{.Q | urlquery}}">Found</a>
-            {{if .Total}}
-                <span class="muted" style="margin-left:8px;">{{.Total}} result{{if ne .Total 1}}s{{end}}</span>
+<div style="margin-bottom:12px;">
+    <a class="button" href="/?q={{.Q | urlquery}}">All</a>
+    <a class="button" href="/?status=lost&q={{.Q | urlquery}}">Lost</a>
+    <a class="button" href="/?status=found&q={{.Q | urlquery}}">Found</a>
+    {{if .Total}}
+        <span class="muted" style="margin-left:8px;">{{.Total}} result{{if ne .Total 1}}s{{end}}</span>
+    {{end}}
+</div>
+
+{{if not .Items}}
+    {{if .Q}}
+        <p>No items match "{{.Q}}". <a href="/">Clear search</a></p>
+    {{else if .Status}}
+        <p>No items in "{{.Status}}". <a href="/">Show all</a></p>
+    {{else}}
+        <p>No items reported yet. <a href="/items/new">Be the first to post one!</a></p>
+    {{end}}
+{{else}}
+    {{range .Items}}
+        <div class="card">
+            <div class="row">
+                <h3><a href="/items/{{.ID}}">{{.Title}}</a></h3>
+                <span class="pill {{if eq .Status "lost"}}pill-lost{{else}}pill-found{{end}}">{{.Status}}</span>
+            </div>
+
+            {{if .Image}}
+                <img src="/static/uploads/{{.Image}}" alt="{{.Title}}" style="max-width:200px; display:block; margin-bottom:8px">
             {{end}}
+
+            <p class="muted">Reported on {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
+
+            {{if eq .Status "found"}}
+                <p class="muted">Marked as found on {{.FoundAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
+            {{end}}
+
+            <p><strong>Description:</strong> {{.Desc}}</p>
+            <p><strong>Contact:</strong> {{.Contact}}</p>
         </div>
+    {{end}}
+{{end}}
+</main>
 
-        {{if not .Items}}
-            {{if .Q}}
-                <p>No items match "{{.Q}}". <a href="/">Clear search</a></p>
-            {{else if .Status}}
-                <p>No items in "{{.Status}}". <a href="/">Show all</a></p>
-            {{else}}
-                <p>No items reported yet. <a href="/items/new">Be the first to post one!</a></p>
-            {{end}}
-        {{else}}
-            {{range .Items}}
-                <div class="card">
-                    <div class="row">
-                        <h3><a href="/items/{{.ID}}">{{.Title}}</a></h3>
-                        <span class="pill {{if eq .Status "lost"}}pill-lost{{else}}pill-found{{end}}">{{.Status}}</span>
-                    </div>
-                    {{if .Image}}
-                        <img src="/static/uploads/{{.Image}}" alt="{{.Title}}" style="max-width:200px; display:block; margin-bottom:8px">
-                    {{end}}
-                    <p class="muted">{{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
-                    <p><strong>Description:</strong> {{.Desc}}</p>
-                    <p><strong>Contact:</strong> {{.Contact}}</p>
-                </div>
-            {{end}}
-        {{end}}
-    </main>
-
-    <footer>
-        <hr>
-        <p>&copy; 2025 Lost & Found</p>
-    </footer>
+<footer>
+    <hr>
+    <p>&copy; 2025 Lost & Found</p>
+</footer>
 </body>
 </html>
 {{end}}
