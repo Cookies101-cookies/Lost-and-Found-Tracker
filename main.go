@@ -45,13 +45,14 @@ func main() {
 	r.GET("/", listItems)
 	r.GET("/items/new", newItemForm)
 	r.POST("/items", createItem)
+	r.POST("/items/:id/mark-found", markAsFound)
 
-	// Edit routes
+	// Edit and show routes
 	r.GET("/items/:id/edit", editItemForm)
 	r.POST("/items/:id/edit", updateItem)
-
-	// Route to show single item
 	r.GET("/items/:id", showItem)
+
+	// Route to delete all items from database only
 	r.GET("/clear-db-only", func(c *gin.Context) {
 		// Delete all items from the database, but keep uploaded images
 		if err := gdb.Where("1 = 1").Delete(&Item{}).Error; err != nil {
@@ -183,7 +184,7 @@ func editItemForm(c *gin.Context) {
 	log.Println("Edit page rendered for ID:", id)
 }
 
-// Update item with full debugging
+// Update item after editing
 func updateItem(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -255,5 +256,38 @@ func updateItem(c *gin.Context) {
 	}
 
 	log.Println("Item updated successfully:", it)
+	c.Redirect(http.StatusSeeOther, "/items/"+idStr)
+}
+
+// Mark item as found
+func markAsFound(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid item ID")
+		return
+	}
+
+	var it Item
+	if err := gdb.First(&it, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.String(http.StatusNotFound, "item not found")
+			return
+		}
+		c.String(http.StatusInternalServerError, "DB error: %v", err)
+		return
+	}
+
+	if it.Status == "found" {
+		c.String(http.StatusBadRequest, "item is already marked as found")
+		return
+	}
+
+	it.Status = "found"
+	if err := gdb.Save(&it).Error; err != nil {
+		c.String(http.StatusInternalServerError, "failed to update item: %v", err)
+		return
+	}
+
 	c.Redirect(http.StatusSeeOther, "/items/"+idStr)
 }
