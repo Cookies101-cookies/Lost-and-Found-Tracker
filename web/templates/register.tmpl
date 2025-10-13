@@ -1,0 +1,17 @@
+{{define "register"}}
+{{template "layout" .}}
+{{end}}
+
+{{define "content"}}
+<h2>Register</h2>
+
+<form method="POST" action="/register">
+    <label>Username:<br><input type="text" name="username" required></label><br><br>
+    <label>Email:<br><input type="email" name="email" required></label><br><br>
+    <label>Password:<br><input type="password" name="password" required></label><br><br>
+    <label>Confirm Password:<br><input type="password" name="confirm" required></label><br><br>
+    <button type="submit">Register</button>
+</form>
+
+<p>Already have an account? <a href="/login">Login here</a></p>
+{{end}}

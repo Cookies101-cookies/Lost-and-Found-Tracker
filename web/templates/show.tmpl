@@ -1,62 +1,25 @@
 {{define "show"}}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Item Details</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-    <header>
-        <h1><a href="/">Lost & Found</a></h1>
-        <nav>
-            <a href="/">All Items</a> | 
-            <a href="/items/new">Post Item</a>
-        </nav>
-        <hr>
-    </header>
+{{template "layout" .}}
+{{end}}
 
-    <main>
-        <div class="card">
-            <div class="row">
-                <h2>{{.Item.Title}}</h2>
-                <span class="pill {{if eq .Item.Status "lost"}}pill-lost{{else}}pill-found{{end}}">{{.Item.Status}}</span>
-            </div>
+{{define "content"}}
+<h2>{{.Item.Title}}</h2>
 
-            {{if .Item.Image}}
-                <img src="/static/uploads/{{.Item.Image}}" alt="{{.Item.Title}}" style="max-width:300px; display:block; margin:8px 0;">
-            {{end}}
+{{if .Item.Image}}
+    <img src="/static/uploads/{{.Item.Image}}" alt="{{.Item.Title}}" style="max-width:300px; display:block; margin-bottom:12px;">
+{{end}}
 
-            <p class="muted">Reported on {{.Item.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
-            <p><strong>Description:</strong><br>{{.Item.Desc}}</p>
-            <p><strong>Contact Info:</strong><br>{{.Item.Contact}}</p>
+<p><strong>Status:</strong> {{.Item.Status}}</p>
+<p><strong>Description:</strong> {{.Item.Desc}}</p>
+<p><strong>Contact:</strong> {{.Item.Contact}}</p>
+<p class="muted">Reported on {{.Item.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
+{{if eq .Item.Status "found"}}
+<p class="muted">Marked as found on {{.Item.FoundAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
+{{end}}
 
-            <form method="GET" action="/items/{{.Item.ID}}/edit" style="margin-top:12px;">
-                <button type="submit" style="padding:8px 16px; background-color:#4CAF50; color:white; border:none; border-radius:4px;">
-                    Edit Item
-                </button>
-            </form>
-
-            {{if eq .Item.Status "lost"}}
-                <form method="POST" action="/items/{{.Item.ID}}/mark-found" style="margin-top:12px">
-                    <button type="submit" style="padding:8px 16px; background-color:#FF5722; color:white; border:none; border-radius:4px;">
-                        Mark as found
-                    </button>
-                </form>
-            {{end}}
-
-            {{if eq .Item.Status "found"}}
-                <p class="muted">Marked as found on {{.Item.FoundAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
-            {{end}}
-        </div>
-
-        <p><a href="/">← Back to All Items</a></p>
-    </main>
-
-    <footer>
-        <hr>
-        <p>&copy; 2025 Lost & Found</p>
-    </footer>
-</body>
-</html>
+{{if .CurrentUser}}
+    {{if eq .Item.UserID .CurrentUser.ID}}
+        <a href="/items/{{.Item.ID}}/edit">Edit Item</a>
+    {{end}}
+{{end}}
 {{end}}

@@ -8,11 +8,21 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
 	"github.com/Cookies101-cookies/Lost-and-Found-Tracker/internal/db"
 )
+
+type User struct {
+	ID        int       `gorm:"primaryKey;autoIncrement"` // Unique ID
+	Username  string    `gorm:"uniqueIndex;not null"`     // Username
+	Email     string    `gorm:"uniqueIndex;not null"`     // Email
+	Password  string    `gorm:"not null"`                 // hashed password
+	CreatedAt time.Time // When the user was created
+}
 
 type Item struct {
 	ID        int        `gorm:"primaryKey;autoIncrement"` // Unique ID
@@ -21,8 +31,10 @@ type Item struct {
 	Contact   string     // Contact info of the person who posted
 	Status    string     `gorm:"index"` // "lost" or "found"
 	Image     string     // URL or path to image
-	CreatedAt time.Time  `gorm:"index"` // When the post was created
-	FoundAt   *time.Time `gorm:"index"` // When the item was marked as found
+	CreatedAt time.Time  `gorm:"index"`             // When the post was created
+	FoundAt   *time.Time `gorm:"index"`             // When the item was marked as found
+	UserID    int        `gorm:"index"`             // FK to User
+	User      User       `gorm:"foreignKey:UserID"` // The user who posted the item
 }
 
 var gdb *gorm.DB
@@ -37,16 +49,24 @@ func main() {
 	if err != nil {
 		log.Fatal("open db:", err)
 	}
-	if err := database.AutoMigrate(&Item{}); err != nil {
+	if err := database.AutoMigrate(&User{}, &Item{}); err != nil {
 		log.Fatal("migrate:", err)
 	}
 	gdb = database
+
+	// Attach user middleware
+	r.Use(attachUser())
 
 	// Routes
 	r.GET("/", listItems)
 	r.GET("/items/new", newItemForm)
 	r.POST("/items", createItem)
 	r.POST("/items/:id/mark-found", markAsFound)
+	r.GET("/register", showRegisterForm)
+	r.POST("/register", registerUser)
+	r.GET("/login", showLoginForm)
+	r.POST("/login", loginUser)
+	r.GET("/logout", logoutUser)
 
 	// Edit and show routes
 	r.GET("/items/:id/edit", editItemForm)
@@ -94,17 +114,18 @@ func listItems(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "index", gin.H{
+	c.HTML(http.StatusOK, "index", getTemplateData(c, gin.H{
 		"Items":  items,
 		"Q":      q,
 		"Status": status,
 		"Total":  len(items),
-	})
+		"Title":  "All Items",
+	}))
 }
 
 // Show form for creating new item
 func newItemForm(c *gin.Context) {
-	c.HTML(http.StatusOK, "new", gin.H{"Title": "Post New Item"})
+	c.HTML(http.StatusOK, "new", getTemplateData(c, gin.H{"Title": "Post New Item"}))
 }
 
 // Create new item
@@ -132,6 +153,12 @@ func createItem(c *gin.Context) {
 		}
 	}
 
+	user, err := getCurrentUser(c)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/login")
+		return
+	}
+
 	item := Item{
 		Title:     title,
 		Desc:      desc,
@@ -139,6 +166,7 @@ func createItem(c *gin.Context) {
 		Status:    status,
 		Image:     filename,
 		CreatedAt: time.Now(),
+		UserID:    user.ID,
 	}
 
 	if err := gdb.Create(&item).Error; err != nil {
@@ -167,7 +195,7 @@ func showItem(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "lookup error: %v", err)
 		return
 	}
-	c.HTML(http.StatusOK, "show", gin.H{"Item": it})
+	c.HTML(http.StatusOK, "show", getTemplateData(c, gin.H{"Item": it, "Title": it.Title}))
 }
 
 // Show form for editing an item
@@ -181,7 +209,13 @@ func editItemForm(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "edit", gin.H{"Item": it})
+	user, err := getCurrentUser(c)
+	if err != nil || it.UserID != user.ID {
+		c.String(http.StatusForbidden, "You cannot edit this item")
+		return
+	}
+
+	c.HTML(http.StatusOK, "edit", getTemplateData(c, gin.H{"Item": it, "Title": "Edit Item"}))
 	log.Println("Edit page rendered for ID:", id)
 }
 
@@ -209,6 +243,12 @@ func updateItem(c *gin.Context) {
 	}
 
 	log.Println("Editing item:", it)
+
+	user, err := getCurrentUser(c)
+	if err != nil || it.UserID != user.ID {
+		c.String(http.StatusForbidden, "You cannot edit this item")
+		return
+	}
 
 	// Get form values
 	title := c.PostForm("title")
@@ -300,4 +340,124 @@ func markAsFound(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusSeeOther, "/items/"+idStr)
+}
+
+// Get current logged-in user
+func getCurrentUser(c *gin.Context) (*User, error) {
+	cookie, err := c.Cookie("user_id")
+	if err != nil {
+		return nil, err
+	}
+	uid, _ := strconv.Atoi(cookie)
+	var user User
+	if err := gdb.First(&user, uid).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// Middleware to attach user to context
+func attachUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, err := getCurrentUser(c)
+		if err == nil {
+			c.Set("CurrentUser", user)
+		}
+		c.Next()
+	}
+}
+
+func getTemplateData(c *gin.Context, extra gin.H) gin.H {
+	data := gin.H{}
+
+	for k, v := range extra {
+		data[k] = v
+	}
+
+	if user, exists := c.Get("CurrentUser"); exists {
+		data["CurrentUser"] = user
+	} else {
+		data["CurrentUser"] = nil
+	}
+	return data
+}
+
+// Has password using bcrypt
+func hashPassword(pw string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+// Check password using bcrypt
+func checkPassword(hash, pw string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(pw))
+	return err == nil
+}
+
+// Show login form
+func showRegisterForm(c *gin.Context) {
+	c.HTML(http.StatusOK, "register", getTemplateData(c, gin.H{"Title": "Register"}))
+}
+
+// Handle user registration
+func registerUser(c *gin.Context) {
+	username := c.PostForm("username")
+	email := c.PostForm("email")
+	password := c.PostForm("password")
+	confirm := c.PostForm("confirm")
+
+	if username == "" || email == "" || password == "" || password != confirm {
+		c.String(http.StatusBadRequest, "Invalid input or passwords do not match")
+		return
+	}
+
+	hashed, _ := hashPassword(password)
+
+	user := User{
+		Username:  username,
+		Email:     email,
+		Password:  hashed,
+		CreatedAt: time.Now(),
+	}
+	if err := gdb.Create(&user).Error; err != nil {
+		c.String(http.StatusInternalServerError, "Could not create user: %v", err)
+		return
+	}
+
+	// Set cookie
+	c.SetCookie("user_id", strconv.Itoa(user.ID), 3600*24, "/", "", false, true)
+	c.Redirect(http.StatusSeeOther, "/")
+}
+
+// Show login form
+func showLoginForm(c *gin.Context) {
+	c.HTML(http.StatusOK, "login", getTemplateData(c, gin.H{"Title": "Login"}))
+}
+
+// Handle user login
+func loginUser(c *gin.Context) {
+	email := c.PostForm("email")
+	password := c.PostForm("password")
+
+	var user User
+	if err := gdb.Where("email = ?", email).First(&user).Error; err != nil {
+		c.String(http.StatusUnauthorized, "Invalid email or password")
+		return
+	}
+
+	if !checkPassword(user.Password, password) {
+		c.String(http.StatusUnauthorized, "Invalid email or password")
+		return
+	}
+
+	// Set cookie
+	c.SetCookie("user_id", strconv.Itoa(user.ID), 3600*24, "/", "", false, true)
+	c.Redirect(http.StatusSeeOther, "/")
+}
+
+// Handle user logout
+func logoutUser(c *gin.Context) {
+	// Clear cookie
+	c.SetCookie("user_id", "", -1, "/", "", false, true)
+	c.Redirect(http.StatusSeeOther, "/")
 }

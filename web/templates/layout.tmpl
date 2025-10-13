@@ -12,6 +12,13 @@
         <nav>
             <a href="/">All Items</a> | 
             <a href="/items/new">Post Item</a>
+            {{if .CurrentUser}}
+                | <span>Welcome, {{.CurrentUser.Username}}</span>
+                | <a href="/logout">Logout</a>
+            {{else}}
+                | <a href="/register">Register</a>
+                | <a href="/login">Login</a>
+            {{end}}
         </nav>
         <hr>
     </header>

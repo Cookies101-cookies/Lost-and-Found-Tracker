@@ -1,65 +1,21 @@
 {{define "new"}}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Post New Item</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-    <header>
-        <h1><a href="/">Lost & Found</a></h1>
-        <nav>
-            <a href="/">All Items</a> | 
-            <a href="/items/new">Post Item</a>
-        </nav>
-        <hr>
-    </header>
+{{template "layout" .}}
+{{end}}
 
-    <main>
-        <h2>Report Lost or Found Item</h2>
+{{define "content"}}
+<h2>Post New Item</h2>
 
-        <div class="card">
-            <form method="POST" action="/items" enctype="multipart/form-data">
-                <div style="margin-bottom:1em;">
-                    <label for="title"><strong>Title</strong></label><br>
-                    <input type="text" id="title" name="title" required style="width:100%;">
-                </div>
-
-                <div style="margin-bottom:1em;">
-                    <label for="desc"><strong>Description</strong></label><br>
-                    <textarea id="desc" name="desc" rows="4" style="width:100%;"></textarea>
-                </div>
-
-                <div style="margin-bottom:1em;">
-                    <label for="contact"><strong>Contact Info</strong></label><br>
-                    <input type="text" id="contact" name="contact" required style="width:100%;">
-                </div>
-
-                <div style="margin-bottom:1em;">
-                    <label for="status"><strong>Status</strong></label><br>
-                    <select id="status" name="status" required>
-                        <option value="lost">Lost</option>
-                        <option value="found">Found</option>
-                    </select>
-                </div>
-
-                <div style="margin-bottom:1em;">
-                    <label for="image"><strong>Image (optional)</strong></label><br>
-                    <input type="file" id="image" name="image" accept="image/*">
-                </div>
-
-                <button type="submit" style="padding:8px 16px; background-color:#4CAF50; color:white; border:none; border-radius:4px;">Submit</button>
-            </form>
-        </div>
-
-        <p><a href="/">← Back to All Items</a></p>
-    </main>
-
-    <footer>
-        <hr>
-        <p>&copy; 2025 Lost & Found</p>
-    </footer>
-</body>
-</html>
+<form method="POST" action="/items" enctype="multipart/form-data">
+    <label>Title:<br><input type="text" name="title" required></label><br><br>
+    <label>Description:<br><textarea name="desc"></textarea></label><br><br>
+    <label>Contact:<br><input type="text" name="contact" required></label><br><br>
+    <label>Status:<br>
+        <select name="status">
+            <option value="lost">Lost</option>
+            <option value="found">Found</option>
+        </select>
+    </label><br><br>
+    <label>Image:<br><input type="file" name="image"></label><br><br>
+    <button type="submit">Post Item</button>
+</form>
 {{end}}
