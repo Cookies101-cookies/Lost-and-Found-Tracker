@@ -1,30 +1,3 @@
-{{define "title"}}Item Details{{end}}
-
-{{define "content"}}
-<div class="card">
-    <div class="row">
-        <h2>{{.Item.Title}}</h2>
-        <span class="pill {{if eq .Item.Status "lost"}}pill-lost{{else}}pill-found{{end}}">{{.Item.Status}}</span>
-    </div>
-
-    {{if .Item.Image}}
-        <img src="/static/uploads/{{.Item.Image}}" alt="{{.Item.Title}}" style="max-width:300px; display:block; margin:8px 0;">
-    {{end}}
-
-    <p class="muted">Reported on {{.Item.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
-    <p><strong>Description:</strong><br>{{.Item.Desc}}</p>
-    <p><strong>Contact Info:</strong><br>{{.Item.Contact}}</p>
-
-    <form method="GET" action="/items/{{.Item.ID}}/edit" style="margin-top:12px;">
-        <button type="submit" style="padding:8px 16px; background-color:#4CAF50; color:white; border:none; border-radius:4px;">
-            Edit Item
-        </button>
-    </form>
-</div>
-
-<p><a href="/">← Back to All Items</a></p>
-{{end}}
-
 {{define "show"}}
 <!DOCTYPE html>
 <html lang="en">
@@ -44,7 +17,28 @@
     </header>
 
     <main>
-        {{block "content" .}}{{end}}
+        <div class="card">
+            <div class="row">
+                <h2>{{.Item.Title}}</h2>
+                <span class="pill {{if eq .Item.Status "lost"}}pill-lost{{else}}pill-found{{end}}">{{.Item.Status}}</span>
+            </div>
+
+            {{if .Item.Image}}
+                <img src="/static/uploads/{{.Item.Image}}" alt="{{.Item.Title}}" style="max-width:300px; display:block; margin:8px 0;">
+            {{end}}
+
+            <p class="muted">Reported on {{.Item.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</p>
+            <p><strong>Description:</strong><br>{{.Item.Desc}}</p>
+            <p><strong>Contact Info:</strong><br>{{.Item.Contact}}</p>
+
+            <form method="GET" action="/items/{{.Item.ID}}/edit" style="margin-top:12px;">
+                <button type="submit" style="padding:8px 16px; background-color:#4CAF50; color:white; border:none; border-radius:4px;">
+                    Edit Item
+                </button>
+            </form>
+        </div>
+
+        <p><a href="/">← Back to All Items</a></p>
     </main>
 
     <footer>

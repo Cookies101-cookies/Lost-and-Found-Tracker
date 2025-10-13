@@ -46,11 +46,24 @@ func main() {
 	r.GET("/items/new", newItemForm)
 	r.POST("/items", createItem)
 
-	// Edit routes **must come before /items/:id**
+	// Edit routes
 	r.GET("/items/:id/edit", editItemForm)
 	r.POST("/items/:id/edit", updateItem)
 
+	// Route to show single item
 	r.GET("/items/:id", showItem)
+	r.GET("/clear-db-only", func(c *gin.Context) {
+		// Delete all items from the database, but keep uploaded images
+		if err := gdb.Where("1 = 1").Delete(&Item{}).Error; err != nil {
+			c.String(http.StatusInternalServerError, "Failed to clear items: %v", err)
+			return
+		}
+
+		c.String(http.StatusOK, "All database items cleared! Uploaded images remain.")
+	})
+
+	r.LoadHTMLGlob("web/templates/*.tmpl")
+	log.Println("Templates loaded")
 
 	log.Println("listening on http://localhost:8080")
 	if err := r.Run(":8080"); err != nil {
@@ -167,37 +180,53 @@ func editItemForm(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "edit", gin.H{"Item": it})
-	log.Println("Edit page requested for ID:", id)
+	log.Println("Edit page rendered for ID:", id)
 }
 
-// Update item
+// Update item with full debugging
 func updateItem(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
+		log.Println("Invalid item ID:", idStr)
 		c.String(http.StatusBadRequest, "invalid item ID")
 		return
 	}
 
+	// Fetch the item
 	var it Item
 	if err := gdb.First(&it, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Println("Item not found:", id)
 			c.String(http.StatusNotFound, "item not found")
 			return
 		}
+		log.Println("DB lookup error:", err)
 		c.String(http.StatusInternalServerError, "lookup error: %v", err)
 		return
 	}
 
-	// Log incoming form data for debugging
-	log.Println("Updating item:", id)
-	log.Println("Form data:", c.PostForm("title"), c.PostForm("desc"), c.PostForm("contact"), c.PostForm("status"))
+	log.Println("Editing item:", it)
+
+	// Get form values
+	title := c.PostForm("title")
+	desc := c.PostForm("desc")
+	contact := c.PostForm("contact")
+	status := c.PostForm("status")
+
+	log.Println("Received form data - Title:", title, "Desc:", desc, "Contact:", contact, "Status:", status)
+
+	// Validate required fields
+	if title == "" || contact == "" {
+		log.Println("Missing required fields")
+		c.String(http.StatusBadRequest, "title and contact are required")
+		return
+	}
 
 	// Update fields
-	it.Title = c.PostForm("title")
-	it.Desc = c.PostForm("desc")
-	it.Contact = c.PostForm("contact")
-	status := c.PostForm("status")
+	it.Title = title
+	it.Desc = desc
+	it.Contact = contact
 	if status == "lost" || status == "found" {
 		it.Status = status
 	}
@@ -208,6 +237,7 @@ func updateItem(c *gin.Context) {
 		filename := strconv.FormatInt(time.Now().UnixNano(), 10) + "_" + file.Filename
 		savePath := "./web/static/uploads/" + filename
 		if saveErr := c.SaveUploadedFile(file, savePath); saveErr != nil {
+			log.Println("Failed to save uploaded image:", saveErr)
 			c.String(http.StatusInternalServerError, "failed to save image: %v", saveErr)
 			return
 		}
@@ -217,12 +247,13 @@ func updateItem(c *gin.Context) {
 		log.Println("No new image uploaded")
 	}
 
-	// Save updates
+	// Save changes to DB
 	if err := gdb.Save(&it).Error; err != nil {
+		log.Println("Failed to update item:", err)
 		c.String(http.StatusInternalServerError, "failed to update item: %v", err)
 		return
 	}
 
-	log.Println("Item updated successfully:", id)
+	log.Println("Item updated successfully:", it)
 	c.Redirect(http.StatusSeeOther, "/items/"+idStr)
 }
