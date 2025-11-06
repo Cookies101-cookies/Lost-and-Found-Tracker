@@ -16,21 +16,27 @@ It’s a lightweight, self-contained project using **HTML templates**, **CSS sty
 
 ---
 
+
 ## Project Structure
 
+```bash
 ├── main.go # Main application file (routes, handlers)
-├── db.go # Database setup and functions
-├── static/
-│ └── style.css # Modern styling for the entire app
-├── templates/
-│ ├── layout.tmpl # Base layout used by all pages
-│ ├── index.tmpl # Home page showing all/lost/found items
-│ ├── new.tmpl # Form to post a new item
-│ ├── edit.tmpl # Page for editing existing items
-│ ├── show.tmpl # Detailed view of a single item
-│ └── ... # Additional reusable templates
+├── internal/
+│ └── db.go # Database setup and functions
+├── web/
+│ └── static/
+│   └── uploads/
+│     └── # Images when uploaded in item
+│   └── style.css # Modern styling for the entire app
+│ └── templates/
+│   └── layout.tmpl # Base layout used by all pages
+│   └── index.tmpl # Home page showing all/lost/found items
+│   └── new.tmpl # Form to post a new item
+│   └── edit.tmpl # Page for editing existing items
+│   └── show.tmpl # Detailed view of a single item
+│   └── ... # Additional reusable templates
 └── lostfound.db # SQLite database (auto-created if missing)
-
+```
 ---
 
 ## Installation & Setup
